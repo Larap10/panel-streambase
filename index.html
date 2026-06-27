@@ -2,66 +2,86 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Enterprise | Professional System</title>
+    <title>StreamBase Pro | Gestión Activa</title>
     <style>
-        /* Estilos profesionales extraídos de tu configuración de colores original */
-        :root { --bg: #0F172A; --sidebar: #0B0F19; --card: #131B2E; --accent: #FFFFD700; --text: #FFFFFF; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
-        .sidebar { width: 250px; background: var(--sidebar); height: 100vh; padding: 20px; }
-        .nav-btn { padding: 15px; cursor: pointer; color: #fff; font-weight: bold; }
+        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --emerald: #10B981; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; }
+        .sidebar { width: 250px; background: #000; height: 100vh; padding: 20px; border-right: 1px solid #222; }
+        .nav { padding: 15px; cursor: pointer; color: #888; font-weight: bold; }
+        .nav:hover { color: var(--accent); }
         .main { flex: 1; padding: 40px; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #1e293b; }
+        .section { display: none; }
+        .card { background: var(--panel); border: 1px solid #333; padding: 20px; border-radius: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; color: #666; font-size: 11px; padding: 10px; border-bottom: 1px solid #333; }
+        td { padding: 12px; border-bottom: 1px solid #222; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <h2 style="color:var(--accent)">STREAMBASE PRO</h2>
-        <div class="nav-btn" onclick="app.showPage('dashboard')">📊 Resumen General</div>
-        <div class="nav-btn" onclick="app.showPage('clients')">👥 Gestión Clientes</div>
-        <div class="nav-btn" onclick="app.showPage('accounts')">🍿 Control Cuentas</div>
-        <div class="nav-btn" onclick="app.showPage('cashflow')">💸 Caja Chica</div>
-        <div class="nav-btn" onclick="app.showPage('config')">⚙️ Ajustes Nube</div>
+        <div class="nav" onclick="show('dashboard')">📊 Resumen Ejecutivo</div>
+        <div class="nav" onclick="show('clients')">👥 Gestión de Clientes</div>
+        <div class="nav" onclick="show('config')">⚙️ Ajustes Nube</div>
     </div>
-    <div class="main" id="app-root">
+
+    <div class="main">
+        <div id="dashboard" class="section" style="display:block;">
+            <h1>Resumen Ejecutivo</h1>
+            <div id="dashboard-data" class="card">Conectando...</div>
         </div>
 
+        <div id="clients" class="section">
+            <h1>Gestión de Clientes</h1>
+            <button onclick="addNewClient()" style="background:var(--emerald); border:none; padding:10px; border-radius:5px;">➕ Registrar Nuevo Cliente</button>
+            <table id="t-clients">
+                <thead><tr><th>NOMBRE</th><th>SERVICIO</th><th>VENCIMIENTO</th><th>ESTADO</th></tr></thead>
+                <tbody id="b-clients"></tbody>
+            </table>
+        </div>
+
+        <div id="config" class="section">
+            <h1>Ajustes de Nube</h1>
+            <input type="text" id="url-in" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="https://tu-proyecto.firebaseio.com/">
+            <button onclick="saveAndSync()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent);">GUARDAR Y SINCRONIZAR</button>
+        </div>
+    </div>
+
     <script>
-        // Mapeo íntegro de la lógica de desktop_app.py
-        class StreamBasePro {
-            constructor() {
-                this.state = { clients: [], tv_accounts: [], cash_flow: [], url: localStorage.getItem('s_url') || '' };
-                this.init();
-            }
+        let state = { db: [], tv_db: [], url: localStorage.getItem('s_url') || '' };
 
-            async init() {
-                if(this.state.url) await this.sync();
-                this.showPage('dashboard');
-            }
-
-            async sync() {
-                try {
-                    let res = await fetch(this.state.url + 'streambase.json');
-                    let data = await res.json();
-                    this.state.clients = data.db || [];
-                    this.state.tv_accounts = data.tv_db || [];
-                    this.render();
-                } catch(e) { console.error("Error de sincronización", e); }
-            }
-
-            showPage(page) {
-                const root = document.getElementById('app-root');
-                if(page === 'dashboard') {
-                    root.innerHTML = `<h1>Panel de Control</h1>
-                        <div class="grid">
-                            <div class="card"><h3>CLIENTES</h3><h2>${this.state.clients.length}</h2></div>
-                            <div class="card"><h3>CUENTAS</h3><h2>${this.state.tv_accounts.length}</h2></div>
-                        </div>`;
-                }
-                // ... Aquí integraremos cada módulo de tu desktop_app.py
-            }
+        async function sync() {
+            try {
+                let res = await fetch(state.url + 'streambase.json');
+                let data = await res.json();
+                state.db = data.db || [];
+                renderClients();
+            } catch(e) { document.getElementById('d-content').innerText = "Error: Verifica la URL y las reglas de Firebase."; }
         }
-        const app = new StreamBasePro();
+
+        function renderClients() {
+            let b = document.getElementById('b-clients');
+            b.innerHTML = '';
+            state.db.forEach(c => {
+                b.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td><td>${c.estadoPago}</td></tr>`;
+            });
+            document.getElementById('d-c').innerText = state.db.length;
+        }
+
+        function show(id) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+        }
+
+        async function saveAndSync() {
+            let url = document.getElementById('url-in').value.trim();
+            if(!url.endsWith('/')) url += '/';
+            localStorage.setItem('s_url', url);
+            state.url = url;
+            sync();
+        }
+
+        if(state.url) { document.getElementById('url-in').value = state.url; sync(); }
     </script>
 </body>
 </html>
