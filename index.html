@@ -2,91 +2,81 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Enterprise Control</title>
+    <title>StreamBase Enterprise | Professional Control</title>
     <style>
-        :root { --bg: #0B0E14; --panel: #161B22; --accent: #F7B500; --text: #E6EDF3; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; margin: 0; }
+        :root {
+            --bg: #050505; --panel: #111111; --accent: #FFD700;
+            --netflix: #E50914; --disney: #113CCF; --max: #A020F0;
+        }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
         
-        /* Layout Profesional */
-        .sidebar { width: 240px; background: #0D1117; height: 100vh; padding: 20px; border-right: 1px solid #30363D; }
-        .main { flex: 1; padding: 30px; height: 100vh; overflow-y: auto; }
+        /* Sidebar Profesional */
+        .sidebar { width: 260px; background: #000; border-right: 1px solid #222; height: 100vh; padding: 20px; }
+        .logo { color: var(--accent); font-weight: 900; font-size: 20px; margin-bottom: 40px; }
+        .nav-item { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; transition: 0.3s; }
+        .nav-item:hover { background: #111; color: var(--accent); }
         
-        /* Dashboard Cards Pro */
-        .grid-pro { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
-        .card-pro { background: var(--panel); border: 1px solid #30363D; padding: 20px; border-radius: 12px; }
-        .alert-box { background: #2D1B1B; border-left: 4px solid #EF4444; padding: 15px; margin-bottom: 20px; }
+        /* Main */
+        .main { flex: 1; padding: 40px; }
+        .card-elegant { background: linear-gradient(145deg, #161616, #0a0a0a); border: 1px solid #222; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Tablas Profesionales */
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .data-table th { color: #8B949E; font-size: 12px; text-transform: uppercase; padding: 10px; border-bottom: 1px solid #30363D; }
-        .data-table td { padding: 15px; border-bottom: 1px solid #30363D; }
+        /* Colores por Servicio */
+        .tag { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; }
+        .bg-Netflix { background: var(--netflix); }
+        .bg-Disney { background: var(--disney); }
+        .bg-Max { background: var(--max); }
         
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        h1 { font-weight: 300; letter-spacing: -1px; }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <h2>STREAMBASE PRO</h2>
-        <div onclick="showTab('dashboard')" class="nav-btn">📊 Dashboard Ejecutivo</div>
-        <div onclick="showTab('clients')" class="nav-btn">👥 Cartera Clientes</div>
-        <div onclick="showTab('despacho')" class="nav-btn">🚀 Despacho y Envíos</div>
-        <div onclick="showTab('config')" class="nav-btn">⚙️ Configuración</div>
+        <div class="logo">STREAMBASE PRO</div>
+        <div class="nav-item" onclick="showSection('dashboard')">📊 Dashboard Ejecutivo</div>
+        <div class="nav-item" onclick="showSection('clients')">👥 Cartera Clientes</div>
+        <div class="nav-item" onclick="showSection('accounts')">🍿 Gestión Cuentas</div>
+        <div class="nav-item" onclick="showSection('cash')">💸 Flujo de Caja</div>
     </div>
 
     <div class="main">
-        <div id="dashboard" class="section active">
-            <h1 id="greeting">Panel de Control Ejecutivo</h1>
-            <!-- Semáforo de Alertas -->
-            <div id="alerts-container"></div>
-            
-            <div class="grid-pro">
-                <div class="card-pro"><h3>VENTAS TOTALES</h3><div class="value" id="d-ventas">$0.00</div></div>
-                <div class="card-pro"><h3>CLIENTES ACTIVOS</h3><div class="value" id="d-clientes">0</div></div>
-                <div class="card-pro"><h3>DESPACHOS PENDIENTES</h3><div class="value" id="d-despachos">0</div></div>
-                <div class="card-pro"><h3>CUENTAS VENCIDAS</h3><div class="value" id="d-vencidas" style="color:#EF4444">0</div></div>
+        <div id="dashboard" class="section">
+            <h1>Panel Ejecutivo</h1>
+            <div style="display:flex; gap:20px;">
+                <div class="card-elegant" style="flex:1"><h3>TOTAL VENTAS</h3><h2 id="d-ventas">$0.00</h2></div>
+                <div class="card-elegant" style="flex:1"><h3>CLIENTES</h3><h2 id="d-clientes">0</h2></div>
             </div>
-            
-            <table class="data-table">
-                <thead><tr><th>Cliente</th><th>Servicio</th><th>Vencimiento</th><th>Estado</th></tr></thead>
+            <br>
+            <table style="width:100%; border-collapse: collapse;">
+                <thead><tr style="text-align:left; color:#666; font-size:12px;"><th>CLIENTE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead>
                 <tbody id="vencimientos-body"></tbody>
             </table>
-        </div>
-        
-        <div id="despacho" class="section">
-            <h1>Gestión de Despachos</h1>
-            <p>Monitoreo de entregas y servicios técnicos...</p>
         </div>
     </div>
 
     <script>
-        // LÓGICA DE AUTOMATIZACIÓN (El motor del sistema)
-        function processVencimientos() {
-            let container = document.getElementById('alerts-container');
-            let tbody = document.getElementById('vencimientos-body');
-            let vencidas = 0;
-            let now = new Date();
-            
-            tbody.innerHTML = '';
-            state.db.forEach(c => {
-                let vDate = new Date(c.vence);
-                let diff = (vDate - now) / (1000 * 60 * 60 * 24);
-                
-                // Si venció hace menos de 3 días o está por vencer
-                if (diff < 3) {
-                    vencidas++;
-                    tbody.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td><td><span class="badge" style="background:#EF4444">URGENTE</span></td></tr>`;
-                }
-            });
-            document.getElementById('d-vencidas').innerText = vencidas;
-            if(vencidas > 0) container.innerHTML = `<div class="alert-box">⚠️ Tienes ${vencidas} cuentas vencidas o por vencer. ¡Atención inmediata requerida!</div>`;
+        // Lógica de colores automáticos para servicios
+        function getServiceClass(name) {
+            if(name.toLowerCase().includes('netflix')) return 'bg-Netflix';
+            if(name.toLowerCase().includes('disney')) return 'bg-Disney';
+            if(name.toLowerCase().includes('max')) return 'bg-Max';
+            return 'bg-secondary';
         }
 
-        // Integrar al render principal
-        function renderAll() {
-            renderDashboard();
-            processVencimientos();
-            // ... resto de lógica
+        // Renderizado Profesional con etiquetas de color
+        function renderDashboard() {
+            let tbody = document.getElementById('vencimientos-body');
+            tbody.innerHTML = '';
+            state.db.forEach(c => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${c.nombre}</td>
+                        <td><span class="tag ${getServiceClass(c.servicio)}">${c.servicio}</span></td>
+                        <td>${c.vence}</td>
+                    </tr>`;
+            });
         }
+        
+        // El resto de la lógica de Firebase y Sincronización se mantiene igual...
     </script>
 </body>
 </html>
