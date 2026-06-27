@@ -2,17 +2,21 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Pro | Central de Control</title>
+    <title>StreamBase Pro | Enterprise Control</title>
     <style>
-        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --emerald: #10B981; --red: #EF4444; }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
+        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --text: #fff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
         .sidebar { width: 250px; background: #000; height: 100vh; padding: 25px; border-right: 1px solid #222; }
         .nav { padding: 15px; cursor: pointer; color: #888; font-weight: 600; }
         .nav:hover { background: #1a1a1a; color: var(--accent); }
         .main { flex: 1; padding: 40px; overflow-y: auto; }
         .section { display: none; }
-        .card { background: var(--panel); border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-        .alert-row { background: #220000; border-left: 4px solid var(--red); padding: 10px; margin-bottom: 5px; }
+        
+        /* Estilo de Tarjetas de Cliente */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .client-card { background: var(--panel); border: 1px solid #333; padding: 20px; border-radius: 16px; border-top: 5px solid var(--accent); }
+        .card-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
+        .label { color: #888; }
     </style>
 </head>
 <body>
@@ -25,27 +29,18 @@
 
     <div class="main">
         <div id="dashboard" class="section" style="display:block;">
-            <h1>Dashboard Ejecutivo</h1>
+            <h1>Alertas de Vencimiento</h1>
             <div id="alerts"></div>
-            <div class="card">
-                <h3>Vencimientos Inminentes</h3>
-                <div id="vencimientos-list"></div>
-            </div>
         </div>
 
         <div id="clients" class="section">
             <h1>Gestión de Clientes</h1>
-            <div class="card">
-                <table id="t-clients">
-                    <thead><tr><th>NOMBRE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead>
-                    <tbody id="b-clients"></tbody>
-                </table>
-            </div>
+            <div id="client-gallery" class="grid-cards"></div>
         </div>
 
         <div id="config" class="section">
             <h1>Ajustes Nube</h1>
-            <input type="text" id="url-in" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="https://tu-proyecto.firebaseio.com/">
+            <input type="text" id="url-in" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="URL de Firebase">
             <button onclick="saveConn()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent);">GUARDAR Y SINCRONIZAR</button>
         </div>
     </div>
@@ -58,6 +53,14 @@
             document.getElementById(id).style.display = 'block';
         }
 
+        // Sistema de colores por plataforma
+        function getPlatColor(p) {
+            if(p.toLowerCase().includes('netflix')) return '#E50914';
+            if(p.toLowerCase().includes('disney')) return '#113CCF';
+            if(p.toLowerCase().includes('max')) return '#A020F0';
+            return '#FFD700';
+        }
+
         async function sync() {
             try {
                 let res = await fetch(state.url + 'streambase.json');
@@ -68,24 +71,22 @@
         }
 
         function render() {
-            // Render Gestión Clientes
-            let b = document.getElementById('b-clients');
-            b.innerHTML = '';
-            state.db.forEach(c => {
-                b.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td></tr>`;
-            });
-
-            // Render Alertas de Vencimiento
-            let alertBox = document.getElementById('alerts');
-            let vList = document.getElementById('vencimientos-list');
-            alertBox.innerHTML = ''; vList.innerHTML = '';
+            let gallery = document.getElementById('client-gallery');
+            gallery.innerHTML = '';
             
             state.db.forEach(c => {
-                let diff = (new Date(c.vence) - new Date()) / (1000 * 60 * 60 * 24);
-                if(diff < 3) {
-                    alertBox.innerHTML += `<div class="alert-row">⚠️ ${c.nombre} vence en ${Math.round(diff)} días.</div>`;
-                    vList.innerHTML += `<div>${c.nombre} - ${c.vence}</div>`;
-                }
+                let color = getPlatColor(c.servicio);
+                gallery.innerHTML += `
+                    <div class="client-card" style="border-top-color: ${color}">
+                        <h3 style="margin-top:0">${c.nombre}</h3>
+                        <div class="card-row"><span class="label">Plataforma:</span> <b>${c.servicio}</b></div>
+                        <div class="card-row"><span class="label">Correo:</span> ${c.correo || 'N/A'}</div>
+                        <div class="card-row"><span class="label">Pass:</span> ${c.clave || 'N/A'}</div>
+                        <div class="card-row"><span class="label">PIN:</span> ${c.pin || '1234'}</div>
+                        <div class="card-row"><span class="label">Precio:</span> $${c.precioVenta}</div>
+                        <div class="card-row"><span class="label">Costo:</span> $${c.precioCosto}</div>
+                        <div class="card-row" style="margin-top:10px;"><span class="label">Vence:</span> ${c.vence}</div>
+                    </div>`;
             });
         }
 
