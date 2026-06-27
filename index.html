@@ -4,56 +4,58 @@
     <meta charset="UTF-8">
     <title>StreamBase Pro | Central de Control</title>
     <style>
-        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --text: #fff; --netflix: #E50914; --disney: #113CCF; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
-        .sidebar { width: 250px; background: #000; height: 100vh; padding: 20px; border-right: 1px solid #333; }
-        .nav { padding: 15px; cursor: pointer; color: #888; font-weight: bold; }
-        .nav:hover { color: var(--accent); }
-        .main { flex: 1; padding: 30px; }
+        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --emerald: #10B981; --red: #EF4444; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
+        .sidebar { width: 250px; background: #000; height: 100vh; padding: 25px; border-right: 1px solid #222; }
+        .nav { padding: 15px; cursor: pointer; color: #888; font-weight: 600; }
+        .nav:hover { background: #1a1a1a; color: var(--accent); }
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
         .section { display: none; }
         .card { background: var(--panel); border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { color: #666; font-size: 11px; padding: 10px; border-bottom: 1px solid #333; }
-        td { padding: 12px; border-bottom: 1px solid #222; }
+        .alert-row { background: #220000; border-left: 4px solid var(--red); padding: 10px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <h2 style="color:var(--accent)">STREAMBASE PRO</h2>
-        <div class="nav" onclick="show('dashboard')">📊 Resumen General</div>
+        <div class="nav" onclick="show('dashboard')">📊 Resumen Ejecutivo</div>
         <div class="nav" onclick="show('clients')">👥 Gestión Clientes</div>
-        <div class="nav" onclick="show('accounts')">🍿 Control Cuentas</div>
         <div class="nav" onclick="show('config')">⚙️ Ajustes Nube</div>
     </div>
+
     <div class="main">
         <div id="dashboard" class="section" style="display:block;">
-            <h1>Panel Ejecutivo</h1>
-            <div id="stats" class="card">Cargando datos...</div>
-            <table id="t-clients"><thead><tr><th>CLIENTE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead><tbody id="b-clients"></tbody></table>
+            <h1>Dashboard Ejecutivo</h1>
+            <div id="alerts"></div>
+            <div class="card">
+                <h3>Vencimientos Inminentes</h3>
+                <div id="vencimientos-list"></div>
+            </div>
         </div>
-        <div id="clients" class="section"><h1>Gestión de Clientes</h1></div>
-        <div id="accounts" class="section"><h1>Control Cuentas</h1></div>
+
+        <div id="clients" class="section">
+            <h1>Gestión de Clientes</h1>
+            <div class="card">
+                <table id="t-clients">
+                    <thead><tr><th>NOMBRE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead>
+                    <tbody id="b-clients"></tbody>
+                </table>
+            </div>
+        </div>
+
         <div id="config" class="section">
             <h1>Ajustes Nube</h1>
-            <input type="text" id="fb-url" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="https://tu-proyecto.firebaseio.com/">
-            <button onclick="saveAndSync()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent);">GUARDAR Y SINCRONIZAR</button>
+            <input type="text" id="url-in" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="https://tu-proyecto.firebaseio.com/">
+            <button onclick="saveConn()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent);">GUARDAR Y SINCRONIZAR</button>
         </div>
     </div>
 
     <script>
-        let state = { db: [], tv_db: [], url: localStorage.getItem('s_url') || '' };
-        
+        let state = { db: [], url: localStorage.getItem('s_url') || '' };
+
         function show(id) {
             document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
             document.getElementById(id).style.display = 'block';
-        }
-
-        async function saveAndSync() {
-            let url = document.getElementById('fb-url').value.trim();
-            if(!url.endsWith('/')) url += '/';
-            localStorage.setItem('s_url', url);
-            state.url = url;
-            sync();
         }
 
         async function sync() {
@@ -61,17 +63,41 @@
                 let res = await fetch(state.url + 'streambase.json');
                 let data = await res.json();
                 state.db = data.db || [];
-                state.tv_db = data.tv_db || [];
-                
-                document.getElementById('stats').innerText = `Clientes: ${state.db.length} | Cuentas: ${state.tv_db.length}`;
-                let b = document.getElementById('b-clients'); b.innerHTML = '';
-                state.db.forEach(c => {
-                    b.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td></tr>`;
-                });
-            } catch(e) { document.getElementById('stats').innerText = "Error: Verifica la URL y las Reglas de Firebase."; }
+                render();
+            } catch(e) { console.error(e); }
         }
-        
-        if(state.url) { document.getElementById('fb-url').value = state.url; sync(); }
+
+        function render() {
+            // Render Gestión Clientes
+            let b = document.getElementById('b-clients');
+            b.innerHTML = '';
+            state.db.forEach(c => {
+                b.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td></tr>`;
+            });
+
+            // Render Alertas de Vencimiento
+            let alertBox = document.getElementById('alerts');
+            let vList = document.getElementById('vencimientos-list');
+            alertBox.innerHTML = ''; vList.innerHTML = '';
+            
+            state.db.forEach(c => {
+                let diff = (new Date(c.vence) - new Date()) / (1000 * 60 * 60 * 24);
+                if(diff < 3) {
+                    alertBox.innerHTML += `<div class="alert-row">⚠️ ${c.nombre} vence en ${Math.round(diff)} días.</div>`;
+                    vList.innerHTML += `<div>${c.nombre} - ${c.vence}</div>`;
+                }
+            });
+        }
+
+        async function saveConn() {
+            let url = document.getElementById('url-in').value.trim();
+            if(!url.endsWith('/')) url += '/';
+            localStorage.setItem('s_url', url);
+            state.url = url;
+            sync();
+        }
+
+        if(state.url) { document.getElementById('url-in').value = state.url; sync(); }
     </script>
 </body>
 </html>
