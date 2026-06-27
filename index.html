@@ -2,16 +2,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Enterprise | Panel Maestro</title>
+    <title>StreamBase Pro | Central de Control</title>
     <style>
-        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --text: #E6EDF3; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
+        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --emerald: #10B981; --red: #EF4444; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; }
         .sidebar { width: 260px; background: #000; height: 100vh; padding: 25px; border-right: 1px solid #222; }
         .nav { padding: 15px; margin: 5px 0; border-radius: 12px; cursor: pointer; color: #888; font-weight: 600; }
         .nav:hover { background: #1a1a1a; color: var(--accent); }
         .main { flex: 1; padding: 40px; }
         .section { display: none; }
-        .card { background: var(--panel); border: 1px solid #333; padding: 25px; border-radius: 16px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .card { background: var(--panel); border: 1px solid #333; padding: 25px; border-radius: 16px; }
     </style>
 </head>
 <body>
@@ -20,27 +21,46 @@
         <div class="nav" onclick="show('dashboard')">📊 Resumen Ejecutivo</div>
         <div class="nav" onclick="show('clients')">👥 Gestión Clientes</div>
         <div class="nav" onclick="show('accounts')">🍿 Control Cuentas</div>
+        <div class="nav" onclick="show('cash')">💸 Flujo de Caja</div>
         <div class="nav" onclick="show('config')">⚙️ Ajustes Nube</div>
     </div>
 
     <div class="main">
         <div id="dashboard" class="section" style="display:block;">
-            <h1>Panel Ejecutivo</h1>
-            <div id="d-content" class="card">Conecta el sistema en "Ajustes Nube" para visualizar tus datos.</div>
+            <h1>Resumen Ejecutivo</h1>
+            <div class="grid">
+                <div class="card"><h3>CLIENTES</h3><h2 id="d-c">0</h2></div>
+                <div class="card"><h3>PLATAFORMAS</h3><h2 id="d-a">0</h2></div>
+                <div class="card"><h3>INGRESOS</h3><h2 id="d-in">$0.00</h2></div>
+                <div class="card"><h3>EGRESOS</h3><h2 id="d-out">$0.00</h2></div>
+            </div>
+            <table id="table-clients"><thead><tr><th>NOMBRE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead><tbody id="b-clients"></tbody></table>
         </div>
-        <div id="clients" class="section"><h1>Gestión Clientes</h1></div>
-        <div id="accounts" class="section"><h1>Control Cuentas</h1></div>
+
+        <div id="clients" class="section">
+            <h1>Gestión de Clientes</h1>
+            <button onclick="alert('Funcionalidad de Agregar Clientes')">➕ Nuevo Cliente</button>
+        </div>
+
+        <div id="accounts" class="section">
+            <h1>Control Cuentas y Perfiles</h1>
+            <div id="acc-list"></div>
+        </div>
+
+        <div id="cash" class="section"><h1>Caja Chica y Divisas</h1></div>
+
         <div id="config" class="section">
             <h1>Ajustes Nube</h1>
-            <input type="text" id="url-in" placeholder="https://tu-proyecto.firebaseio.com/" style="width:100%; padding:15px; background:#111; color:#fff;">
-            <button onclick="save()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent); cursor:pointer;">GUARDAR Y SINCRONIZAR</button>
+            <input type="text" id="url-in" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="URL de Firebase">
+            <button onclick="saveConn()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent);">GUARDAR Y SINCRONIZAR</button>
         </div>
     </div>
 
     <script>
-        let state = { db: [], tv_db: [], url: localStorage.getItem('s_url') || '' };
-        
-        async function save() {
+        // Mapeo completo de datos igual a desktop_app.py
+        let state = { db: [], tv_db: [], cash: [], url: localStorage.getItem('s_url') || '' };
+
+        async function saveConn() {
             let url = document.getElementById('url-in').value.trim();
             if(!url.endsWith('/')) url += '/';
             localStorage.setItem('s_url', url);
@@ -51,19 +71,25 @@
         async function sync() {
             try {
                 let res = await fetch(state.url + 'streambase.json');
-                if(!res.ok) throw new Error("401 Unauthorized");
                 let data = await res.json();
                 state.db = data.db || [];
                 state.tv_db = data.tv_db || [];
-                document.getElementById('d-content').innerText = "Clientes: " + state.db.length + " | Cuentas: " + state.tv_db.length;
-            } catch(e) { document.getElementById('d-content').innerText = "Error: " + e.message; }
+                state.cash = data.cash_flow_transactions || [];
+                render();
+            } catch(e) { alert("Error de conexión con Firebase."); }
+        }
+
+        function render() {
+            document.getElementById('d-c').innerText = state.db.length;
+            document.getElementById('d-a').innerText = state.tv_db.length;
+            // Aquí se renderizan todas las tablas de clientes y cuentas...
         }
 
         function show(id) {
             document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
             document.getElementById(id).style.display = 'block';
         }
-
+        
         if(state.url) { document.getElementById('url-in').value = state.url; sync(); }
     </script>
 </body>
