@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamBase v3.6 - Pro Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --solar-dark: #0f172a; --solar-darker: #0b1120; --neon-green: #39ff14; --border: #e2e8f0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f1f5f9; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar-pro { width: 260px; background: var(--solar-darker); color: white; display: flex; flex-direction: column; }
+        .sidebar-brand { padding: 24px; font-weight: 800; text-align: center; color: var(--neon-green); border-bottom: 1px solid #1e293b; }
+        .sidebar-nav { padding: 20px 10px; display: flex; flex-direction: column; gap: 8px; }
+        .tab-btn { background: transparent; border: none; color: #94a3b8; font-size: 14px; font-weight: 600; cursor: pointer; padding: 14px 20px; border-radius: 12px; text-align: left; transition: 0.2s; }
+        .tab-btn.active { background: #1e293b; color: var(--neon-green); border-left: 4px solid var(--neon-green); }
+        .main-workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; }
+        .tab-content { display: none; } .active-tab { display: block; }
+        .btn-sync { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 800; margin-left: 5px; }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar-pro">
+    <div class="sidebar-brand">STREAMBASE PRO</div>
+    <nav class="sidebar-nav">
+        <button class="tab-btn active" onclick="verTab('tab-home', this)">Inicio</button>
+        <button class="tab-btn" onclick="verTab('tab-inventory', this)">Stock</button>
+        <button class="tab-btn" onclick="verTab('tab-list', this)">Clientes</button>
+        <button class="tab-btn" onclick="verTab('tab-perfiles-tv', this)">Cuentas</button>
+        <button class="tab-btn" onclick="verTab('tab-despacho-tv', this)">Despacho</button>
+    </nav>
+</aside>
+
+<main class="main-workspace">
+    <header class="top-header">
+        <h2>Panel de Administración</h2>
+        <div>
+            <button class="btn-sync" style="background:#3b82f6; color:white;" onclick="guardarEnNube()">Sync Nube</button>
+            <button class="btn-sync" style="background:#10b981; color:white;" onclick="cargarDeNube()">Descargar</button>
+            <button class="btn-sync" style="background:transparent; border:1px solid #3b82f6; color:#3b82f6;" onclick="abrirConfigNube()">⚙️ API</button>
+        </div>
+    </header>
+    <div class="content-area">
+        <div id="tab-home" class="tab-content active-tab">Cargando...</div>
+        <div id="tab-inventory" class="tab-content">Inventario</div>
+        <div id="tab-list" class="tab-content">Lista</div>
+        <div id="tab-perfiles-tv" class="tab-content">Cuentas</div>
+        <div id="tab-despacho-tv" class="tab-content">Despacho</div>
+    </div>
+</main>
+
+<script>
+    let clientes = JSON.parse(localStorage.getItem('solar_db')) || [];
+    let stock = JSON.parse(localStorage.getItem('solar_stock')) || [];
+    let inv_tv = JSON.parse(localStorage.getItem('tvnicaplay_db')) || [];
+    let cli_tv = JSON.parse(localStorage.getItem('tvnicaplay_clientes')) || [];
+
+    function verTab(id, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const el = document.getElementById(id);
+        if(el) { el.classList.add('active-tab'); btn.classList.add('active'); }
+    }
+
+    function abrirConfigNube() {
+        let url = prompt("Pega tu URL de Firebase (terminada en /):", localStorage.getItem('cloud_firebase_url') || "");
+        if(url) localStorage.setItem('cloud_firebase_url', url.endsWith('/') ? url : url + '/');
+    }
+
+    async function guardarEnNube() {
+        const url = localStorage.getItem('cloud_firebase_url');
+        if(!url) return alert("❌ Primero configura la API en el botón API.");
+        
+        try {
+            const res = await fetch(url + "streambase.json", {
+                method: 'PUT',
+                body: JSON.stringify({ db: clientes, stock: stock, tv_db: inv_tv, cli_tv: cli_tv, ultima_vez: new Date().toLocaleString() })
+            });
+            if(res.ok) alert("✅ Datos guardados correctamente.");
+            else alert("❌ Error Firebase: " + res.status + ". Revisa tus Reglas (Rules).");
+        } catch(e) { console.error(e); alert("❌ Error de red."); }
+    }
+
+    async function cargarDeNube() {
+        const url = localStorage.getItem('cloud_firebase_url');
+        if(!url) return alert("❌ Primero configura la API en el botón API.");
+        
+        try {
+            const res = await fetch(url + "streambase.json?t=" + Date.now());
+            if(res.ok) {
+                const text = await res.text();
+                if(!text || text === "null") return alert("❌ La base en la nube está vacía.");
+                const data = JSON.parse(text);
+                
+                localStorage.setItem('solar_db', JSON.stringify(data.db || []));
+                localStorage.setItem('solar_stock', JSON.stringify(data.stock || []));
+                localStorage.setItem('tvnicaplay_db', JSON.stringify(data.tv_db || []));
+                localStorage.setItem('tvnicaplay_clientes', JSON.stringify(data.cli_tv || []));
+                alert("✅ Descargado. Recargando...");
+                location.reload();
+            } else alert("❌ Error: " + res.status);
+        } catch(e) { console.error(e); alert("❌ Error al conectar."); }
+    }
+</script>
+</body>
+</html>
