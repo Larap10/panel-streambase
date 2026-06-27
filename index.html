@@ -2,103 +2,83 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Pro | Enterprise Control</title>
+    <title>StreamBase Enterprise | Control Maestro</title>
     <style>
-        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --text: #fff; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
+        :root { --bg: #050505; --panel: #111; --accent: #FFD700; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
         .sidebar { width: 250px; background: #000; height: 100vh; padding: 25px; border-right: 1px solid #222; }
-        .nav { padding: 15px; cursor: pointer; color: #888; font-weight: 600; }
-        .nav:hover { background: #1a1a1a; color: var(--accent); }
         .main { flex: 1; padding: 40px; overflow-y: auto; }
         .section { display: none; }
-        
-        /* Estilo de Tarjetas de Cliente */
-        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        .client-card { background: var(--panel); border: 1px solid #333; padding: 20px; border-radius: 16px; border-top: 5px solid var(--accent); }
-        .card-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
-        .label { color: #888; }
+        .module-title { color: var(--accent); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px; }
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px; }
+        .client-card { background: #161616; border-radius: 12px; padding: 15px; border: 1px solid #222; }
+        .status-badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <h2 style="color:var(--accent)">STREAMBASE PRO</h2>
-        <div class="nav" onclick="show('dashboard')">📊 Resumen Ejecutivo</div>
-        <div class="nav" onclick="show('clients')">👥 Gestión Clientes</div>
-        <div class="nav" onclick="show('config')">⚙️ Ajustes Nube</div>
+        <div onclick="show('dashboard')" style="cursor:pointer; padding:15px;">📊 Dashboard Ejecutivo</div>
+        <div onclick="show('clients')" style="cursor:pointer; padding:15px;">👥 Gestión por Servicios</div>
     </div>
 
     <div class="main">
         <div id="dashboard" class="section" style="display:block;">
-            <h1>Alertas de Vencimiento</h1>
-            <div id="alerts"></div>
+            <h1>Alertas Críticas</h1>
+            <div id="alert-box"></div>
+            <div id="dashboard-content"></div>
         </div>
-
         <div id="clients" class="section">
-            <h1>Gestión de Clientes</h1>
-            <div id="client-gallery" class="grid-cards"></div>
-        </div>
-
-        <div id="config" class="section">
-            <h1>Ajustes Nube</h1>
-            <input type="text" id="url-in" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="URL de Firebase">
-            <button onclick="saveConn()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent);">GUARDAR Y SINCRONIZAR</button>
+            <div id="service-grouping"></div>
         </div>
     </div>
 
     <script>
         let state = { db: [], url: localStorage.getItem('s_url') || '' };
 
+        async function sync() {
+            let res = await fetch(state.url + 'streambase.json');
+            let data = await res.json();
+            state.db = data.db || [];
+            render();
+        }
+
+        function render() {
+            // 1. Dashboard: Alertas
+            let alertBox = document.getElementById('alert-box');
+            alertBox.innerHTML = '';
+            state.db.forEach(c => {
+                let diff = (new Date(c.vence) - new Date()) / (1000 * 60 * 60 * 24);
+                if(diff < 3) alertBox.innerHTML += `<div style="background:#220000; padding:10px; margin:5px 0;">⚠️ ${c.nombre} (${c.servicio}) vence en ${Math.round(diff)} días.</div>`;
+            });
+
+            // 2. Clientes Agrupados por Servicio
+            let container = document.getElementById('service-grouping');
+            container.innerHTML = '';
+            let services = [...new Set(state.db.map(c => c.servicio))];
+            
+            services.forEach(serv => {
+                container.innerHTML += `<h2 class="module-title">${serv.toUpperCase()}</h2>`;
+                let grid = document.createElement('div');
+                grid.className = 'grid-cards';
+                state.db.filter(c => c.servicio === serv).forEach(c => {
+                    grid.innerHTML += `
+                        <div class="client-card">
+                            <b>${c.nombre}</b><br>
+                            <small style="color:#888">Pass: ${c.clave}</small><br>
+                            <span class="status-badge" style="background:#333">${c.vence}</span>
+                        </div>`;
+                });
+                container.appendChild(grid);
+            });
+        }
+        
         function show(id) {
             document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
             document.getElementById(id).style.display = 'block';
         }
-
-        // Sistema de colores por plataforma
-        function getPlatColor(p) {
-            if(p.toLowerCase().includes('netflix')) return '#E50914';
-            if(p.toLowerCase().includes('disney')) return '#113CCF';
-            if(p.toLowerCase().includes('max')) return '#A020F0';
-            return '#FFD700';
-        }
-
-        async function sync() {
-            try {
-                let res = await fetch(state.url + 'streambase.json');
-                let data = await res.json();
-                state.db = data.db || [];
-                render();
-            } catch(e) { console.error(e); }
-        }
-
-        function render() {
-            let gallery = document.getElementById('client-gallery');
-            gallery.innerHTML = '';
-            
-            state.db.forEach(c => {
-                let color = getPlatColor(c.servicio);
-                gallery.innerHTML += `
-                    <div class="client-card" style="border-top-color: ${color}">
-                        <h3 style="margin-top:0">${c.nombre}</h3>
-                        <div class="card-row"><span class="label">Plataforma:</span> <b>${c.servicio}</b></div>
-                        <div class="card-row"><span class="label">Correo:</span> ${c.correo || 'N/A'}</div>
-                        <div class="card-row"><span class="label">Pass:</span> ${c.clave || 'N/A'}</div>
-                        <div class="card-row"><span class="label">PIN:</span> ${c.pin || '1234'}</div>
-                        <div class="card-row"><span class="label">Precio:</span> $${c.precioVenta}</div>
-                        <div class="card-row"><span class="label">Costo:</span> $${c.precioCosto}</div>
-                        <div class="card-row" style="margin-top:10px;"><span class="label">Vence:</span> ${c.vence}</div>
-                    </div>`;
-            });
-        }
-
-        async function saveConn() {
-            let url = document.getElementById('url-in').value.trim();
-            if(!url.endsWith('/')) url += '/';
-            localStorage.setItem('s_url', url);
-            state.url = url;
-            sync();
-        }
-
-        if(state.url) { document.getElementById('url-in').value = state.url; sync(); }
+        
+        if(state.url) sync();
     </script>
 </body>
 </html>
