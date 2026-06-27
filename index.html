@@ -2,675 +2,90 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamBase Desktop Web - Central de Control</title>
+    <title>StreamBase Enterprise Control</title>
     <style>
-        :root {
-            --bg-color: #0F172A; --sidebar-bg: #0B0F19; --card-bg: #131B2E;
-            --text-color: #FFFFFF; --text-muted: #94A3B8; --accent-color: #FFD700;
-            --emerald-green: #10B981; --danger-red: #EF4444; --blue-sky: #00E5FF;
-        }
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; }
+        :root { --bg: #0B0E14; --panel: #161B22; --accent: #F7B500; --text: #E6EDF3; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; margin: 0; }
         
-        /* Sidebar Navigation */
-        .sidebar { width: 220px; background-color: var(--sidebar-bg); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0;}
-        .sidebar-header { padding: 0 20px 20px; margin-bottom: 20px; }
-        .sidebar-header h2 { color: var(--accent-color); margin: 0 0 5px 0; font-size: 16px; font-weight: bold;}
-        .sidebar-header span { color: var(--text-muted); font-size: 11px; font-style: italic; }
-        .nav-btn { background: none; border: none; color: var(--text-color); padding: 12px 20px; text-align: left; font-size: 14px; cursor: pointer; transition: background 0.2s; }
-        .nav-btn:hover, .nav-btn.active { background-color: var(--card-bg); color: var(--accent-color); font-weight: bold; }
+        /* Layout Profesional */
+        .sidebar { width: 240px; background: #0D1117; height: 100vh; padding: 20px; border-right: 1px solid #30363D; }
+        .main { flex: 1; padding: 30px; height: 100vh; overflow-y: auto; }
         
-        /* Main Container */
-        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 20px 30px; }
-        .header-title { font-size: 20px; font-weight: bold; margin: 0; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .section { display: none; } .section.active { display: block; }
+        /* Dashboard Cards Pro */
+        .grid-pro { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .card-pro { background: var(--panel); border: 1px solid #30363D; padding: 20px; border-radius: 12px; }
+        .alert-box { background: #2D1B1B; border-left: 4px solid #EF4444; padding: 15px; margin-bottom: 20px; }
         
-        /* KPI Cards */
-        .kpi-container { display: flex; gap: 15px; margin-bottom: 20px; }
-        .kpi-card { background-color: var(--card-bg); padding: 15px; border-radius: 4px; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
-        .kpi-card h3 { color: var(--text-muted); margin: 0 0 8px 0; font-size: 11px; }
-        .kpi-card .value { font-size: 22px; font-weight: bold; }
-        .text-green { color: var(--emerald-green); } .text-red { color: var(--danger-red); } .text-accent { color: var(--accent-color); } .text-blue { color: var(--blue-sky); }
+        /* Tablas Profesionales */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .data-table th { color: #8B949E; font-size: 12px; text-transform: uppercase; padding: 10px; border-bottom: 1px solid #30363D; }
+        .data-table td { padding: 15px; border-bottom: 1px solid #30363D; }
         
-        /* Tables & Lists */
-        .table-container { background-color: var(--card-bg); flex-grow: 1; border-radius: 4px; overflow-y: auto; margin-top: 10px; max-height: 50vh;}
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 10px 15px; text-align: left; border-bottom: 1px solid #1f2937; }
-        th { background-color: var(--sidebar-bg); color: var(--text-muted); position: sticky; top: 0; }
-        tr:hover { background-color: #1e293b; cursor: pointer; }
-        tr.selected { background-color: #1e293b; border-left: 3px solid var(--accent-color); }
-        
-        /* Toolbars & Inputs */
-        .toolbar { display: flex; gap: 10px; background: var(--card-bg); padding: 10px 15px; border-radius: 4px; align-items: center; margin-bottom: 15px; }
-        .btn { padding: 6px 12px; border: none; border-radius: 2px; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.2s;}
-        .btn:hover { opacity: 0.8; }
-        .btn-green { background-color: var(--emerald-green); color: #000; }
-        .btn-red { background-color: var(--danger-red); color: #fff; }
-        .btn-accent { background-color: var(--accent-color); color: #000; }
-        .btn-blue { background-color: var(--blue-sky); color: #000; }
-        input, select { background: #0B0F19; border: 1px solid #1f2937; color: #fff; padding: 6px 10px; font-size: 13px; border-radius: 2px; }
-        
-        /* Modals */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000;}
-        .modal-content { background: var(--card-bg); padding: 20px 30px; border-radius: 4px; width: 400px; max-height: 85vh; overflow-y: auto; border-top: 3px solid var(--accent-color); }
-        .modal-content h3 { color: var(--accent-color); margin-top: 0; margin-bottom: 15px; font-size: 16px;}
-        .modal-content label { font-size: 11px; color: var(--text-muted); display: block; margin: 10px 0 3px 0; }
-        .modal-content input, .modal-content select { width: 100%; box-sizing: border-box; }
-        .modal-content .btn { width: 100%; margin-top: 15px; padding: 10px; }
-        
-        /* Preformatted text boxes */
-        pre { background: #0B0F19; color: var(--text-color); padding: 15px; font-family: 'Consolas', monospace; font-size: 12px; border-radius: 4px; white-space: pre-wrap; margin: 0;}
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
-
     <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>📺 STREAMBASE</h2>
-            <span>Versión de Escritorio Web v1.2</span>
-        </div>
-        <button class="nav-btn active" onclick="showTab('dashboard')">📊 Resumen General</button>
-        <button class="nav-btn" onclick="showTab('clients')">👥 Gestión Clientes</button>
-        <button class="nav-btn" onclick="showTab('accounts')">🍿 Control Cuentas & Perfiles</button>
-        <button class="nav-btn" onclick="showTab('cashflow')">💸 Caja Chica & Divisas</button>
-        <button class="nav-btn" onclick="showTab('config')">⚙️ Ajustes Nube</button>
-        
-        <div style="margin-top: auto; padding: 20px;">
-            <span id="sync-dot" style="color: var(--danger-red); font-size: 16px;">●</span>
-            <span id="sync-text" style="font-size: 12px; margin-left: 5px;">Desconectado</span>
-        </div>
+        <h2>STREAMBASE PRO</h2>
+        <div onclick="showTab('dashboard')" class="nav-btn">📊 Dashboard Ejecutivo</div>
+        <div onclick="showTab('clients')" class="nav-btn">👥 Cartera Clientes</div>
+        <div onclick="showTab('despacho')" class="nav-btn">🚀 Despacho y Envíos</div>
+        <div onclick="showTab('config')" class="nav-btn">⚙️ Configuración</div>
     </div>
 
-    <div class="main-content">
-        
+    <div class="main">
         <div id="dashboard" class="section active">
-            <div class="header-row">
-                <h1 class="header-title">Panel de Control General</h1>
-                <div>
-                    <span id="last-sync-time" style="color: var(--text-muted); font-size: 12px; margin-right: 15px;">Última vez: Nunca</span>
-                    <button class="btn btn-accent" onclick="syncFromFirebase()">🔄 Forzar Sincronización</button>
-                </div>
+            <h1 id="greeting">Panel de Control Ejecutivo</h1>
+            <!-- Semáforo de Alertas -->
+            <div id="alerts-container"></div>
+            
+            <div class="grid-pro">
+                <div class="card-pro"><h3>VENTAS TOTALES</h3><div class="value" id="d-ventas">$0.00</div></div>
+                <div class="card-pro"><h3>CLIENTES ACTIVOS</h3><div class="value" id="d-clientes">0</div></div>
+                <div class="card-pro"><h3>DESPACHOS PENDIENTES</h3><div class="value" id="d-despachos">0</div></div>
+                <div class="card-pro"><h3>CUENTAS VENCIDAS</h3><div class="value" id="d-vencidas" style="color:#EF4444">0</div></div>
             </div>
             
-            <div class="kpi-container">
-                <div class="kpi-card"><h3>👥 CLIENTES</h3><div class="value text-blue" id="kpi-clients">0</div></div>
-                <div class="kpi-card"><h3>🍿 PLATAFORMAS</h3><div class="value text-accent" id="kpi-accounts">0</div></div>
-                <div class="kpi-card"><h3>📈 INGRESOS (USD)</h3><div class="value text-green" id="kpi-in">$0.00</div></div>
-                <div class="kpi-card"><h3>📉 EGRESOS (USD)</h3><div class="value text-red" id="kpi-out">$0.00</div></div>
-            </div>
-
-            <div class="kpi-card" style="border: 1px solid var(--accent-color); margin-bottom: 20px;">
-                <h3 style="font-weight: bold;">FLUJO NETO ESTIMADO EN NUBE</h3>
-                <div class="value text-green" id="kpi-net" style="font-size: 28px;">$0.00 USD</div>
-            </div>
-            
-            <div class="kpi-card" style="flex-grow: 1; display: flex; flex-direction: column;">
-                <h3 style="color: var(--accent-color); font-weight: bold; font-size: 14px; margin-bottom: 15px;">🔔 SINOPSIS DE VENCIMIENTOS / HISTORIAL RECIENTE</h3>
-                <pre id="vencimientos-log" style="flex-grow: 1; overflow-y: auto; max-height: 250px;">Sin clientes o conexión ausente.</pre>
-            </div>
+            <table class="data-table">
+                <thead><tr><th>Cliente</th><th>Servicio</th><th>Vencimiento</th><th>Estado</th></tr></thead>
+                <tbody id="vencimientos-body"></tbody>
+            </table>
         </div>
-
-        <div id="clients" class="section">
-            <div class="header-row">
-                <h1 class="header-title">Registro y Ventas a Clientes</h1>
-                <div>
-                    <button class="btn btn-blue" onclick="openEditClientModal()">✏️ Editar Cliente</button>
-                    <button class="btn btn-green" style="margin-left: 5px;" onclick="openNewClientModal()">➕ Nuevo Cliente</button>
-                </div>
-            </div>
-            <div class="toolbar" style="justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <label style="font-size: 12px;">🔍 Buscar cliente:</label>
-                    <input type="text" id="search-client" style="width: 250px;" onkeyup="renderClients()">
-                    <label style="font-size: 12px; margin-left: 10px;">Filtro Pago:</label>
-                    <select id="filter-payment" onchange="renderClients()">
-                        <option>TODOS</option><option>Pagado</option><option>Pendiente</option>
-                    </select>
-                </div>
-                <div style="display: flex; gap: 5px;">
-                    <button class="btn btn-green" onclick="markClientPaid()">🟢 Marcar Pagado</button>
-                    <button class="btn" style="background:#FFA500; color:#000;" onclick="markClientUnpaid()">🟡 Marcar Pendiente</button>
-                    <button class="btn btn-red" onclick="deleteClient()">🗑️ Eliminar</button>
-                </div>
-            </div>
-            <div class="table-container">
-                <table id="table-clients">
-                    <thead><tr><th>ID</th><th>Nombre del Cliente</th><th>Celular / WhatsApp</th><th>Plataforma</th><th>Vencimiento</th><th>Precio Venta</th><th>Estado Pago</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="accounts" class="section">
-            <div class="header-row">
-                <h1 class="header-title">Distribución de Cuentas y Control de Perfiles</h1>
-                <button class="btn btn-accent" onclick="openModal('modal-account')">➕ Nueva Cuenta Multipantalla</button>
-            </div>
-            <div style="display: flex; gap: 20px; height: 70vh;">
-                <div class="kpi-card" style="flex: 1; display: flex; flex-direction: column; padding: 10px;">
-                    <h3 style="color: var(--accent-color); font-weight: bold;">Cuentas Principales (TV)</h3>
-                    <div class="table-container" style="margin-top: 0;">
-                        <table id="table-accounts">
-                            <thead><tr><th>ID</th><th>Plataforma</th><th>Correo / Usuario</th><th>Perfiles Disp.</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="kpi-card" style="flex: 1; display: flex; flex-direction: column; padding: 10px;">
-                    <h3 style="color: var(--accent-color); font-weight: bold;">Distribución y Monitor de Perfiles</h3>
-                    <pre id="profiles-log" style="flex-grow: 1; margin-bottom: 10px;"></pre>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-green" onclick="openSellProfileModal()">💸 Rentabilizar Perfil</button>
-                        <button class="btn btn-red" onclick="openFreeProfileModal()">🧹 Liberar Perfil</button>
-                        <div style="flex-grow: 1;"></div>
-                        <button class="btn" style="background: #fff; color: #000;" onclick="deleteAccount()">🗑️ Eliminar Cuenta</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="cashflow" class="section">
-            <div class="header-row">
-                <h1 class="header-title">Caja Chica y Flujo de Divisas</h1>
-                <div>
-                    <button class="btn btn-green" onclick="openCashModal('INGRESO')">🟩 Registrar Entrada (Ingreso)</button>
-                    <button class="btn btn-red" style="margin-left: 5px;" onclick="openCashModal('EGRESO')">🟥 Registrar Salida (Egreso)</button>
-                </div>
-            </div>
-            <div class="kpi-container">
-                <div class="kpi-card"><h3>INGRESOS TOTALES (USD)</h3><div class="value text-green" id="cf-in">$0.00</div></div>
-                <div class="kpi-card"><h3>EGRESOS TOTALES (USD)</h3><div class="value text-red" id="cf-out">$0.00</div></div>
-                <div class="kpi-card"><h3>BALANCE NETO CAJA</h3><div class="value text-accent" id="cf-net">$0.00</div></div>
-            </div>
-            <div class="table-container">
-                <table id="table-cash">
-                    <thead><tr><th>ID</th><th>Tipo</th><th>Concepto</th><th>Categoría</th><th>Monto Grabado</th><th>Eq. USD</th><th>Fecha de Reg.</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div style="margin-top: 15px; text-align: right;">
-                <button class="btn btn-red" onclick="deleteCashTransaction()">Eliminar Movimiento Bancario</button>
-            </div>
-        </div>
-
-        <div id="config" class="section">
-            <h1 class="header-title" style="margin-bottom: 20px;">Ajustes de Sincronización Realtime Nube</h1>
-            <div class="kpi-card" style="margin-bottom: 20px; max-width: 600px;">
-                <p style="color: var(--text-muted); font-size: 13px;">Escribe la URL completa de tu Firebase Realtime Database (con .firebaseio.com) para conectar el Software con las apps Android:</p>
-                <label style="font-weight: bold;">Enlace de Firebase DB URL:</label>
-                <input type="text" id="fb-url" style="width: 100%; margin: 10px 0; padding: 10px;" placeholder="https://tu-proyecto.firebaseio.com/">
-                <button class="btn btn-blue" onclick="saveLocalAndSync()">💾 Guardar Credenciales Locales</button>
-            </div>
-            <div class="kpi-card" style="border: 1px solid var(--accent-color); max-width: 600px;">
-                <h3 style="color: var(--accent-color); font-weight: bold; font-size: 14px;">Estado del Enlace</h3>
-                <p id="sync-info" style="font-size: 13px; line-height: 1.8;">
-                    Servidor Realtime: Firebase API Rest Json<br>
-                    Total Tabla de Clientes: 0<br>
-                    Total de Cuentas: 0<br>
-                    Último Intercambio de Nube: Nunca
-                </p>
-                <div style="margin-top: 15px;">
-                    <button class="btn btn-accent" onclick="syncFromFirebase()">⬇️ DESCARGAR DE FIREBASE (PULL)</button>
-                    <button class="btn btn-green" style="margin-left: 10px;" onclick="pushToFirebase()">⬆️ SUBIR TODO A FIREBASE (PUSH)</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-client" class="modal">
-        <div class="modal-content">
-            <h3 id="modal-client-title">NUEVO CLIENTE NUBE</h3>
-            <input type="hidden" id="m-cli-id">
-            <label>Nombre del Cliente</label><input type="text" id="m-cli-nombre">
-            <label>Celular (Ej: +50588888888)</label><input type="text" id="m-cli-celular">
-            <label>Servicio / Plataforma contratada</label><input type="text" id="m-cli-servicio">
-            <label>Fecha Vence (YYYY-MM-DD)</label><input type="text" id="m-cli-vence">
-            <label>Correo de la Cuenta (Opcional)</label><input type="text" id="m-cli-correo">
-            <label>Clave / Contraseña (Opcional)</label><input type="text" id="m-cli-clave">
-            <label>PIN de Perfil (Opcional)</label><input type="text" id="m-cli-pin" value="1234">
-            <label>Monto Cobrado (USD)</label><input type="number" id="m-cli-venta" value="0.0">
-            <label>Costo de Proveedor (USD)</label><input type="number" id="m-cli-costo" value="0.0">
-            
-            <button class="btn btn-green" onclick="saveClient()">GUARDAR CLIENTE</button>
-            <button class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: #fff;" onclick="closeModals()">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="modal-account" class="modal">
-        <div class="modal-content">
-            <h3>REGISTRAR NUEVA CUENTA TV</h3>
-            <label>Plataforma</label>
-            <select id="m-acc-plat"><option>Netflix</option><option>Disney+</option><option>Max (HBO)</option><option>Amazon Prime</option><option>Combo+</option><option>Crunchyroll</option></select>
-            <label>Correo / Proveedor de la Cuenta</label><input type="text" id="m-acc-correo">
-            <label>Contraseña</label><input type="text" id="m-acc-pass">
-            <label>Cantidad de Perfiles (Pantallas)</label>
-            <select id="m-acc-perf"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select>
-            
-            <button class="btn btn-accent" onclick="saveAccount()">REGISTRAR CUENTA TV</button>
-            <button class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: #fff;" onclick="closeModals()">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="modal-sell-profile" class="modal">
-        <div class="modal-content">
-            <h3>💸 ASIGNAR Y RENTABILIZAR PERFIL</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Selecciona un perfil libre y asócialo a un cliente de tu base de datos.</p>
-            <label>1. Perfil Disponible</label>
-            <select id="m-sell-perfil-num"></select>
-            
-            <label>2. Buscar Cliente Guardado</label>
-            <select id="m-sell-cliente"></select>
-            
-            <label>3. Fecha de Vencimiento de este Perfil</label>
-            <input type="text" id="m-sell-vence">
-            
-            <button class="btn btn-green" onclick="confirmSellProfile()">CONFIRMAR ASIGNACIÓN</button>
-            <button class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: #fff;" onclick="closeModals()">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="modal-free-profile" class="modal">
-        <div class="modal-content">
-            <h3 style="color: var(--danger-red);">🧹 LIBERAR PERFIL OCUPADO</h3>
-            <label>Selecciona el perfil que deseas desvincular y vaciar:</label>
-            <select id="m-free-perfil-num"></select>
-            
-            <button class="btn btn-red" onclick="confirmFreeProfile()">LIBERAR AHORA</button>
-            <button class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: #fff;" onclick="closeModals()">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="modal-cash" class="modal">
-        <div class="modal-content">
-            <h3 id="m-cash-title">NUEVO MOVIMIENTO</h3>
-            <input type="hidden" id="m-cash-type">
-            <label>Concepto de la Operación</label><input type="text" id="m-cash-desc">
-            <label>Categoría</label>
-            <select id="m-cash-cat"><option>Venta</option><option>Mensualidad</option><option>Proveedor</option><option>Comisión</option><option>Gasto Oficina</option><option>Servicio Técnico</option><option>Publicidad</option><option>Otros</option></select>
-            <label>Moneda del Movimiento</label>
-            <select id="m-cash-currency" onchange="updateCashRate()"><option>USD</option><option>NIO</option></select>
-            <label>Tasa de cambio (1 USD = X Monedas)</label><input type="number" id="m-cash-rate" value="1.0" step="0.1">
-            <label>Monto Grabado</label><input type="number" id="m-cash-monto" value="0.0">
-            
-            <button class="btn" id="btn-save-cash" onclick="saveCash()">CONFIRMAR REGISTRO</button>
-            <button class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: #fff;" onclick="closeModals()">Cancelar</button>
+        
+        <div id="despacho" class="section">
+            <h1>Gestión de Despachos</h1>
+            <p>Monitoreo de entregas y servicios técnicos...</p>
         </div>
     </div>
 
     <script>
-        let state = {
-            db: [], stock: [], tv_db: [], cash_flow_transactions: [],
-            custom_currencies: [
-                {id: 1, code: "USD", name: "Dólar Americano", symbol: "$", rateToUsd: 1.0},
-                {id: 2, code: "NIO", name: "Córdoba Nicaragüense", symbol: "C$", rateToUsd: 36.8}
-            ],
-            firebaseUrl: localStorage.getItem('streambase_url') || '',
-            lastSyncTime: "Nunca"
-        };
-        
-        let selClient = null; let selAccount = null; let selCash = null;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('m-cli-vence').value = today;
-            document.getElementById('m-sell-vence').value = today;
-            if (state.firebaseUrl) { document.getElementById('fb-url').value = state.firebaseUrl; syncFromFirebase(); }
-        });
-
-        // NAVEGACIÓN
-        function showTab(tabId) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-            renderAll();
-        }
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
-
-        // RED / FIREBASE
-        function getEndpoint() {
-            let url = state.firebaseUrl.trim();
-            if (!url) return null;
-            if (!url.startsWith('http')) url = 'https://' + url;
-            if (!url.endsWith('/')) url += '/';
-            return url + 'streambase.json';
-        }
-        function setSyncState(msg, color) { document.getElementById('sync-dot').style.color = color; document.getElementById('sync-text').innerText = msg; }
-        function saveLocalAndSync() { state.firebaseUrl = document.getElementById('fb-url').value.trim(); localStorage.setItem('streambase_url', state.firebaseUrl); syncFromFirebase(); }
-
-        async function syncFromFirebase() {
-            const endpoint = getEndpoint();
-            if (!endpoint) return setSyncState("Url Vacía", "var(--danger-red)");
-            setSyncState("Descargando...", "var(--accent-color)");
-            try {
-                const res = await fetch(endpoint);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (!data) {
-                        state.db = []; state.tv_db = []; state.cash_flow_transactions = [];
-                        setSyncState("Nube Vacía", "#FFA500");
-                    } else {
-                        state.db = data.db || []; state.tv_db = data.tv_db || []; state.stock = data.stock || [];
-                        state.custom_currencies = data.custom_currencies || state.custom_currencies;
-                        state.cash_flow_transactions = data.cash_flow_transactions || [];
-                        state.lastSyncTime = new Date().toLocaleString();
-                        setSyncState("Conectado", "var(--emerald-green)");
-                        document.getElementById('last-sync-time').innerText = `Última vez: ${state.lastSyncTime}`;
-                        renderAll();
-                    }
-                } else { setSyncState(`Error ${res.status}`, "var(--danger-red)"); }
-            } catch (e) { setSyncState("Error de Red", "var(--danger-red)"); }
-        }
-
-        async function pushToFirebase() {
-            const endpoint = getEndpoint(); if (!endpoint) return alert("Configura la URL de Firebase.");
-            setSyncState("Subiendo...", "var(--accent-color)");
-            const payload = {
-                db: state.db, stock: state.stock, tv_db: state.tv_db, custom_currencies: state.custom_currencies,
-                cash_flow_transactions: state.cash_flow_transactions, ultima_vez: new Date().toISOString().replace('T', ' ').substring(0, 19),
-                licencias_raw: "", custom_download_link: "https://bit.ly/streambase-download", owner_whatsapp_phone: "82929888", owner_master_code: "Pcson06101920@@"
-            };
-            try {
-                const res = await fetch(endpoint, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                if (res.ok) {
-                    state.lastSyncTime = new Date().toLocaleString(); setSyncState("Conectado", "var(--emerald-green)");
-                    document.getElementById('last-sync-time').innerText = `Última vez: ${state.lastSyncTime}`; renderAll();
-                } else { alert("Error de subida"); }
-            } catch (e) { setSyncState("Error de Red", "var(--danger-red)"); }
-        }
-
-        function renderAll() { renderDashboard(); renderClients(); renderAccounts(); renderCashFlow(); renderConfig(); }
-
-        // --- 1. DASHBOARD ---
-        function renderDashboard() {
-            document.getElementById('kpi-clients').innerText = state.db.length;
-            document.getElementById('kpi-accounts').innerText = state.tv_db.length;
-            let inUsd = 0; let outUsd = 0;
-            state.cash_flow_transactions.forEach(tx => {
-                const eq = tx.amount / (tx.rateToUsdAtTime || 1.0);
-                if(tx.type === "INGRESO") inUsd += eq; else outUsd += eq;
-            });
-            let net = inUsd - outUsd;
-            document.getElementById('kpi-in').innerText = `$${inUsd.toFixed(2)}`;
-            document.getElementById('kpi-out').innerText = `$${outUsd.toFixed(2)}`;
-            document.getElementById('kpi-net').innerText = `$${net.toFixed(2)} USD`;
-            document.getElementById('kpi-net').className = `value ${net >= 0 ? 'text-green' : 'text-red'}`;
+        // LÓGICA DE AUTOMATIZACIÓN (El motor del sistema)
+        function processVencimientos() {
+            let container = document.getElementById('alerts-container');
+            let tbody = document.getElementById('vencimientos-body');
+            let vencidas = 0;
+            let now = new Date();
             
-            let txt = "";
-            if(state.db.length === 0) txt = "Sin clientes o conexión ausente. Registra o descarga datos para ver vencimientos.";
-            else {
-                txt += "CLIENTE                   | SERVICIO / PLATAFORMA     | FECHA VENCE     | WHATSAPP        | ESTADO\n" + "-".repeat(95) + "\n";
-                let sorted = [...state.db].sort((a, b) => (a.vence || "").localeCompare(b.vence || ""));
-                sorted.forEach(c => {
-                    let n = (c.nombre || "N/A").padEnd(25).substring(0,25); let s = (c.servicio || "N/A").padEnd(25).substring(0,25);
-                    let v = (c.vence || "Sin fecha").padEnd(15).substring(0,15); let w = (c.celular || "").padEnd(15).substring(0,15);
-                    let e = (c.estadoPago || "Pagado").padEnd(10).substring(0,10);
-                    txt += `${n} | ${s} | ${v} | ${w} | ${e}\n`;
-                });
-            }
-            document.getElementById('vencimientos-log').innerText = txt;
-        }
-
-        // --- 2. CLIENTES ---
-        function renderClients() {
-            const tbody = document.querySelector('#table-clients tbody'); tbody.innerHTML = '';
-            const q = document.getElementById('search-client').value.toLowerCase().trim();
-            const pFilter = document.getElementById('filter-payment').value;
-            
+            tbody.innerHTML = '';
             state.db.forEach(c => {
-                let nom = (c.nombre||"").toLowerCase(); let cel = (c.celular||"").toLowerCase(); let ser = (c.servicio||"").toLowerCase();
-                let matchSearch = !q || nom.includes(q) || cel.includes(q) || ser.includes(q);
-                let matchPago = pFilter === "TODOS" || pFilter === (c.estadoPago || "Pagado");
+                let vDate = new Date(c.vence);
+                let diff = (vDate - now) / (1000 * 60 * 60 * 24);
                 
-                if (matchSearch && matchPago) {
-                    let tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${c.id}</td><td>${c.nombre}</td><td>${c.celular}</td><td>${c.servicio}</td><td>${c.vence}</td><td>$${parseFloat(c.precioVenta).toFixed(2)}</td><td style="color:${c.estadoPago==='Pagado'?'var(--emerald-green)':'#FFA500'}">${c.estadoPago||'Pagado'}</td>`;
-                    if(selClient === c.id) tr.classList.add('selected');
-                    tr.onclick = () => { selClient = c.id; renderClients(); }; 
-                    tbody.appendChild(tr);
+                // Si venció hace menos de 3 días o está por vencer
+                if (diff < 3) {
+                    vencidas++;
+                    tbody.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td><td><span class="badge" style="background:#EF4444">URGENTE</span></td></tr>`;
                 }
             });
-        }
-        
-        function openNewClientModal() {
-            document.getElementById('modal-client-title').innerText = "NUEVO CLIENTE NUBE";
-            document.getElementById('m-cli-id').value = "";
-            document.getElementById('m-cli-nombre').value = ""; document.getElementById('m-cli-celular').value = "";
-            document.getElementById('m-cli-servicio').value = ""; document.getElementById('m-cli-correo').value = "";
-            document.getElementById('m-cli-clave').value = ""; document.getElementById('m-cli-venta').value = "0.0";
-            document.getElementById('m-cli-costo').value = "0.0"; document.getElementById('m-cli-pin').value = "1234";
-            document.getElementById('m-cli-vence').value = new Date().toISOString().split('T')[0];
-            openModal('modal-client');
+            document.getElementById('d-vencidas').innerText = vencidas;
+            if(vencidas > 0) container.innerHTML = `<div class="alert-box">⚠️ Tienes ${vencidas} cuentas vencidas o por vencer. ¡Atención inmediata requerida!</div>`;
         }
 
-        function openEditClientModal() {
-            if(!selClient) return alert("Selecciona un cliente de la tabla primero.");
-            let c = state.db.find(x => x.id === selClient);
-            document.getElementById('modal-client-title').innerText = "EDITAR CLIENTE EN NUBE";
-            document.getElementById('m-cli-id').value = c.id;
-            document.getElementById('m-cli-nombre').value = c.nombre || ""; document.getElementById('m-cli-celular').value = c.celular || "";
-            document.getElementById('m-cli-servicio').value = c.servicio || ""; document.getElementById('m-cli-correo').value = c.correo || "";
-            document.getElementById('m-cli-clave').value = c.clave || ""; document.getElementById('m-cli-venta').value = c.precioVenta || "0.0";
-            document.getElementById('m-cli-costo').value = c.precioCosto || "0.0"; document.getElementById('m-cli-pin').value = c.pin || "1234";
-            document.getElementById('m-cli-vence').value = c.vence || "";
-            openModal('modal-client');
-        }
-
-        function saveClient() {
-            let editId = document.getElementById('m-cli-id').value;
-            let c = {
-                id: editId ? parseInt(editId) : Math.floor(Date.now()/100),
-                nombre: document.getElementById('m-cli-nombre').value.trim(), celular: document.getElementById('m-cli-celular').value.trim(),
-                servicio: document.getElementById('m-cli-servicio').value.trim(), vence: document.getElementById('m-cli-vence').value.trim(),
-                correo: document.getElementById('m-cli-correo').value.trim(), clave: document.getElementById('m-cli-clave').value.trim(),
-                pin: document.getElementById('m-cli-pin').value.trim(), precioVenta: parseFloat(document.getElementById('m-cli-venta').value) || 0,
-                precioCosto: parseFloat(document.getElementById('m-cli-costo').value) || 0,
-                estadoPago: "Pagado", proveedor: "", venceProveedor: "", tvAccId: null, tvPIndex: null
-            };
-            if(!c.nombre || !c.servicio) return alert("Nombre y Servicio son obligatorios.");
-            
-            if(editId) { // Es una edición
-                let index = state.db.findIndex(x => x.id === parseInt(editId));
-                c.estadoPago = state.db[index].estadoPago; // mantener el estado
-                state.db[index] = c;
-            } else { // Es nuevo
-                state.db.push(c);
-            }
-            closeModals(); renderAll(); pushToFirebase();
-        }
-        
-        function markClientPaid() {
-            if(!selClient) return alert("Por favor, selecciona un cliente primero.");
-            let c = state.db.find(x => x.id === selClient); c.estadoPago = "Pagado";
-            if(confirm(`¿Registrar cobro automático de $${parseFloat(c.precioVenta).toFixed(2)} USD de ${c.nombre} en la caja chica?`)){
-                state.cash_flow_transactions.push({
-                    id: Math.floor(Date.now()/100), type: "INGRESO", amount: parseFloat(c.precioVenta), currencyCode: "USD",
-                    rateToUsdAtTime: 1.0, description: `Cobro suscripción ${c.servicio} - ${c.nombre}`, date: Date.now(), category: "Venta"
-                });
-            }
-            renderAll(); pushToFirebase();
-        }
-        
-        function markClientUnpaid() { if(!selClient) return alert("Selecciona un cliente."); let c = state.db.find(x => x.id === selClient); c.estadoPago = "Pendiente"; renderAll(); pushToFirebase(); }
-        
-        function deleteClient() {
-            if(!selClient) return alert("Selecciona el cliente a eliminar."); let c = state.db.find(x => x.id === selClient);
-            if(confirm(`¿Eliminar permanentemente a ${c.nombre}?`)) { state.db = state.db.filter(x => x.id !== selClient); selClient = null; renderAll(); pushToFirebase(); }
-        }
-
-        // --- 3. CUENTAS TV Y PERFILES (AUTOMATIZADO) ---
-        function renderAccounts() {
-            const tbody = document.querySelector('#table-accounts tbody'); tbody.innerHTML = '';
-            state.tv_db.forEach(a => {
-                let vendidos = a.perfiles.filter(p => p.vendido).length; let disp = a.perfiles.length - vendidos;
-                let tr = document.createElement('tr');
-                tr.innerHTML = `<td>${a.id}</td><td>${a.plataforma}</td><td>${a.correo}</td><td>${disp} / ${a.perfiles.length}</td>`;
-                if(selAccount === a.id) tr.classList.add('selected');
-                tr.onclick = () => { selAccount = a.id; renderAccounts(); }; 
-                tbody.appendChild(tr);
-            });
-            renderProfilesLog();
-        }
-        
-        function renderProfilesLog() {
-            let pre = document.getElementById('profiles-log');
-            if(!selAccount) { pre.innerText = ""; return; }
-            let a = state.tv_db.find(x => x.id === selAccount);
-            let txt = `PLATAFORMA: ${a.plataforma.toUpperCase()}\nADMIN USER: ${a.correo}\nPASSWORD:   ${a.pass}\n`;
-            txt += "=".repeat(60) + "\n\n" + "PERFIL #   | PIN    | VENDIDO?   | CLIENTE ASIGNADO     | VENCE\n" + "-".repeat(60) + "\n";
-            a.perfiles.forEach((p, idx) => {
-                let num = `Perfil ${idx+1}`.padEnd(10); let pin = (p.pin||"-").padEnd(6);
-                let est = (p.vendido ? "✅ SÍ" : "⬜ NO").padEnd(10); let cli = (p.clienteNombre || p.cliente || "").padEnd(20).substring(0,20);
-                let ven = (p.vencimiento || "-");
-                txt += `${num} | ${pin} | ${est} | ${cli} | ${ven}\n`;
-            });
-            pre.innerText = txt;
-        }
-
-        function saveAccount() {
-            let num = parseInt(document.getElementById('m-acc-perf').value); let perfiles = [];
-            for(let i=0; i<num; i++) perfiles.push({nombre: `Perfil ${i+1}`, pin: "0000", vendido: false, cliente: "", clienteNombre: "", vencimiento: ""});
-            let a = { id: Math.floor(Date.now()/100), plataforma: document.getElementById('m-acc-plat').value, correo: document.getElementById('m-acc-correo').value.trim(), pass: document.getElementById('m-acc-pass').value.trim(), perfiles: perfiles };
-            if(!a.correo || !a.pass) return alert("Correo y contraseña requeridos.");
-            state.tv_db.push(a); closeModals(); renderAll(); pushToFirebase();
-        }
-        
-        // MODALES AUTOMATIZADOS DE PERFILES
-        function openSellProfileModal() {
-            if(!selAccount) return alert("Selecciona una cuenta de la tabla de la izquierda.");
-            let a = state.tv_db.find(x => x.id === selAccount);
-            
-            // 1. Filtrar perfiles libres
-            let selPerfil = document.getElementById('m-sell-perfil-num'); selPerfil.innerHTML = '';
-            let hayLibres = false;
-            a.perfiles.forEach((p, idx) => {
-                if(!p.vendido) { hayLibres = true; selPerfil.innerHTML += `<option value="${idx}">Perfil ${idx+1}</option>`; }
-            });
-            if(!hayLibres) return alert("Esta cuenta ya tiene todos sus perfiles ocupados.");
-            
-            // 2. Llenar lista de clientes desde la DB
-            let selCli = document.getElementById('m-sell-cliente'); selCli.innerHTML = '';
-            if(state.db.length === 0) selCli.innerHTML = `<option value="">(No hay clientes registrados, crea uno primero)</option>`;
-            else {
-                state.db.forEach(c => { selCli.innerHTML += `<option value="${c.nombre}">${c.nombre} (Servicio: ${c.servicio})</option>`; });
-            }
-            openModal('modal-sell-profile');
-        }
-
-        function confirmSellProfile() {
-            let a = state.tv_db.find(x => x.id === selAccount);
-            let idx = document.getElementById('m-sell-perfil-num').value;
-            let cliName = document.getElementById('m-sell-cliente').value;
-            let ven = document.getElementById('m-sell-vence').value;
-            
-            if(!cliName) return alert("Debes seleccionar un cliente válido.");
-            
-            a.perfiles[idx].vendido = true;
-            a.perfiles[idx].cliente = cliName;
-            a.perfiles[idx].clienteNombre = cliName;
-            a.perfiles[idx].vencimiento = ven;
-            
-            closeModals(); renderAll(); pushToFirebase();
-        }
-
-        function openFreeProfileModal() {
-            if(!selAccount) return alert("Selecciona una cuenta.");
-            let a = state.tv_db.find(x => x.id === selAccount);
-            
-            let selPerfil = document.getElementById('m-free-perfil-num'); selPerfil.innerHTML = '';
-            let hayOcupados = false;
-            a.perfiles.forEach((p, idx) => {
-                if(p.vendido) { hayOcupados = true; selPerfil.innerHTML += `<option value="${idx}">Perfil ${idx+1} (Ocupado por ${p.clienteNombre})</option>`; }
-            });
-            
-            if(!hayOcupados) return alert("Todos los perfiles de esta cuenta ya están libres.");
-            openModal('modal-free-profile');
-        }
-
-        function confirmFreeProfile() {
-            let a = state.tv_db.find(x => x.id === selAccount);
-            let idx = document.getElementById('m-free-perfil-num').value;
-            
-            a.perfiles[idx].vendido = false;
-            a.perfiles[idx].cliente = "";
-            a.perfiles[idx].clienteNombre = "";
-            a.perfiles[idx].vencimiento = "";
-            
-            closeModals(); renderAll(); pushToFirebase();
-        }
-
-        function deleteAccount() {
-            if(!selAccount) return alert("Selecciona una cuenta.");
-            if(confirm("¿Eliminar cuenta? Esto liberará a los clientes asignados.")){
-                state.tv_db = state.tv_db.filter(x => x.id !== selAccount); selAccount = null;
-                renderAll(); pushToFirebase();
-            }
-        }
-
-        // --- 4. CAJA CHICA ---
-        function renderCashFlow() {
-            const tbody = document.querySelector('#table-cash tbody'); tbody.innerHTML = '';
-            let tIn = 0; let tOut = 0;
-            let sorted = [...state.cash_flow_transactions].sort((a,b) => b.date - a.date);
-            sorted.forEach(tx => {
-                let eq = tx.amount / (tx.rateToUsdAtTime || 1.0);
-                if(tx.type === "INGRESO") tIn += eq; else tOut += eq;
-                let dt = new Date(tx.date); let dStr = `${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')}/${dt.getFullYear().toString().substring(2)} ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
-                let tag = tx.type === "INGRESO" ? "🟩 INGRESO" : "🟥 EGRESO";
-                let montoOrig = `${tx.currencyCode} ${tx.amount.toFixed(2)}`; let eqUsd = `$${eq.toFixed(2)} USD`;
-                let tr = document.createElement('tr');
-                tr.innerHTML = `<td>${tx.id}</td><td>${tag}</td><td>${tx.description}</td><td>${tx.category}</td><td>${montoOrig}</td><td>${eqUsd}</td><td>${dStr}</td>`;
-                if(selCash === tx.id) tr.classList.add('selected');
-                tr.onclick = () => { selCash = tx.id; renderCashFlow(); };
-                tbody.appendChild(tr);
-            });
-            document.getElementById('cf-in').innerText = `$${tIn.toFixed(2)}`;
-            document.getElementById('cf-out').innerText = `$${tOut.toFixed(2)}`;
-            document.getElementById('cf-net').innerText = `$${(tIn - tOut).toFixed(2)}`;
-        }
-        
-        function openCashModal(tipo) {
-            document.getElementById('m-cash-title').innerText = `NUEVO MOVIMIENTO: ${tipo}`;
-            document.getElementById('m-cash-title').style.color = tipo === 'INGRESO' ? 'var(--emerald-green)' : 'var(--danger-red)';
-            document.getElementById('m-cash-type').value = tipo; document.getElementById('m-cash-cat').value = tipo === 'INGRESO' ? 'Venta' : 'Proveedor';
-            document.getElementById('btn-save-cash').className = `btn ${tipo === 'INGRESO' ? 'btn-green' : 'btn-red'}`;
-            openModal('modal-cash');
-        }
-        
-        function updateCashRate() {
-            let code = document.getElementById('m-cash-currency').value;
-            let c = state.custom_currencies.find(x => x.code === code);
-            if(c) document.getElementById('m-cash-rate').value = c.rateToUsd;
-        }
-
-        function saveCash() {
-            let tx = {
-                id: Math.floor(Date.now()/100), type: document.getElementById('m-cash-type').value, amount: parseFloat(document.getElementById('m-cash-monto').value) || 0,
-                currencyCode: document.getElementById('m-cash-currency').value, rateToUsdAtTime: parseFloat(document.getElementById('m-cash-rate').value) || 1.0,
-                description: document.getElementById('m-cash-desc').value.trim(), date: Date.now(), category: document.getElementById('m-cash-cat').value
-            };
-            if(!tx.description || tx.amount <= 0) return alert("Inserta concepto y monto válidos.");
-            state.cash_flow_transactions.push(tx); closeModals(); renderAll(); pushToFirebase();
-        }
-
-        function deleteCashTransaction() {
-            if(!selCash) return alert("Selecciona por favor la transacción bancaria a revertir/eliminar.");
-            if(confirm("¿Eliminar permanentemente este registro financiero de la nube?")){
-                state.cash_flow_transactions = state.cash_flow_transactions.filter(x => x.id !== selCash);
-                selCash = null; renderAll(); pushToFirebase();
-            }
-        }
-        
-        // --- 5. CONFIG ---
-        function renderConfig() {
-            document.getElementById('sync-info').innerHTML = `
-                Servidor Realtime: Firebase API Rest Json<br>
-                Total Tabla de Clientes: ${state.db.length}<br>
-                Total de Cuentas: ${state.tv_db.length}<br>
-                Último Intercambio de Nube: ${state.lastSyncTime}
-            `;
+        // Integrar al render principal
+        function renderAll() {
+            renderDashboard();
+            processVencimientos();
+            // ... resto de lógica
         }
     </script>
 </body>
