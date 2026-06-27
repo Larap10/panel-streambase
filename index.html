@@ -2,86 +2,76 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Pro | Gestión Activa</title>
+    <title>StreamBase Pro | Central de Control</title>
     <style>
-        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --emerald: #10B981; }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; }
-        .sidebar { width: 250px; background: #000; height: 100vh; padding: 20px; border-right: 1px solid #222; }
+        :root { --bg: #050505; --panel: #111; --accent: #FFD700; --text: #fff; --netflix: #E50914; --disney: #113CCF; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
+        .sidebar { width: 250px; background: #000; height: 100vh; padding: 20px; border-right: 1px solid #333; }
         .nav { padding: 15px; cursor: pointer; color: #888; font-weight: bold; }
         .nav:hover { color: var(--accent); }
-        .main { flex: 1; padding: 40px; }
+        .main { flex: 1; padding: 30px; }
         .section { display: none; }
-        .card { background: var(--panel); border: 1px solid #333; padding: 20px; border-radius: 12px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; color: #666; font-size: 11px; padding: 10px; border-bottom: 1px solid #333; }
+        .card { background: var(--panel); border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { color: #666; font-size: 11px; padding: 10px; border-bottom: 1px solid #333; }
         td { padding: 12px; border-bottom: 1px solid #222; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <h2 style="color:var(--accent)">STREAMBASE PRO</h2>
-        <div class="nav" onclick="show('dashboard')">📊 Resumen Ejecutivo</div>
-        <div class="nav" onclick="show('clients')">👥 Gestión de Clientes</div>
+        <div class="nav" onclick="show('dashboard')">📊 Resumen General</div>
+        <div class="nav" onclick="show('clients')">👥 Gestión Clientes</div>
+        <div class="nav" onclick="show('accounts')">🍿 Control Cuentas</div>
         <div class="nav" onclick="show('config')">⚙️ Ajustes Nube</div>
     </div>
-
     <div class="main">
         <div id="dashboard" class="section" style="display:block;">
-            <h1>Resumen Ejecutivo</h1>
-            <div id="dashboard-data" class="card">Conectando...</div>
+            <h1>Panel Ejecutivo</h1>
+            <div id="stats" class="card">Cargando datos...</div>
+            <table id="t-clients"><thead><tr><th>CLIENTE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead><tbody id="b-clients"></tbody></table>
         </div>
-
-        <div id="clients" class="section">
-            <h1>Gestión de Clientes</h1>
-            <button onclick="addNewClient()" style="background:var(--emerald); border:none; padding:10px; border-radius:5px;">➕ Registrar Nuevo Cliente</button>
-            <table id="t-clients">
-                <thead><tr><th>NOMBRE</th><th>SERVICIO</th><th>VENCIMIENTO</th><th>ESTADO</th></tr></thead>
-                <tbody id="b-clients"></tbody>
-            </table>
-        </div>
-
+        <div id="clients" class="section"><h1>Gestión de Clientes</h1></div>
+        <div id="accounts" class="section"><h1>Control Cuentas</h1></div>
         <div id="config" class="section">
-            <h1>Ajustes de Nube</h1>
-            <input type="text" id="url-in" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="https://tu-proyecto.firebaseio.com/">
+            <h1>Ajustes Nube</h1>
+            <input type="text" id="fb-url" style="width:100%; padding:15px; background:#111; color:#fff;" placeholder="https://tu-proyecto.firebaseio.com/">
             <button onclick="saveAndSync()" style="margin-top:15px; padding:15px; width:100%; background:var(--accent);">GUARDAR Y SINCRONIZAR</button>
         </div>
     </div>
 
     <script>
         let state = { db: [], tv_db: [], url: localStorage.getItem('s_url') || '' };
-
-        async function sync() {
-            try {
-                let res = await fetch(state.url + 'streambase.json');
-                let data = await res.json();
-                state.db = data.db || [];
-                renderClients();
-            } catch(e) { document.getElementById('d-content').innerText = "Error: Verifica la URL y las reglas de Firebase."; }
-        }
-
-        function renderClients() {
-            let b = document.getElementById('b-clients');
-            b.innerHTML = '';
-            state.db.forEach(c => {
-                b.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td><td>${c.estadoPago}</td></tr>`;
-            });
-            document.getElementById('d-c').innerText = state.db.length;
-        }
-
+        
         function show(id) {
             document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
             document.getElementById(id).style.display = 'block';
         }
 
         async function saveAndSync() {
-            let url = document.getElementById('url-in').value.trim();
+            let url = document.getElementById('fb-url').value.trim();
             if(!url.endsWith('/')) url += '/';
             localStorage.setItem('s_url', url);
             state.url = url;
             sync();
         }
 
-        if(state.url) { document.getElementById('url-in').value = state.url; sync(); }
+        async function sync() {
+            try {
+                let res = await fetch(state.url + 'streambase.json');
+                let data = await res.json();
+                state.db = data.db || [];
+                state.tv_db = data.tv_db || [];
+                
+                document.getElementById('stats').innerText = `Clientes: ${state.db.length} | Cuentas: ${state.tv_db.length}`;
+                let b = document.getElementById('b-clients'); b.innerHTML = '';
+                state.db.forEach(c => {
+                    b.innerHTML += `<tr><td>${c.nombre}</td><td>${c.servicio}</td><td>${c.vence}</td></tr>`;
+                });
+            } catch(e) { document.getElementById('stats').innerText = "Error: Verifica la URL y las Reglas de Firebase."; }
+        }
+        
+        if(state.url) { document.getElementById('fb-url').value = state.url; sync(); }
     </script>
 </body>
 </html>
