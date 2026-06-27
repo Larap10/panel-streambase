@@ -2,81 +2,78 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Enterprise | Professional Control</title>
+    <title>StreamBase Pro | Central de Control</title>
     <style>
-        :root {
-            --bg: #050505; --panel: #111111; --accent: #FFD700;
-            --netflix: #E50914; --disney: #113CCF; --max: #A020F0;
-        }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
-        
-        /* Sidebar Profesional */
-        .sidebar { width: 260px; background: #000; border-right: 1px solid #222; height: 100vh; padding: 20px; }
-        .logo { color: var(--accent); font-weight: 900; font-size: 20px; margin-bottom: 40px; }
+        :root { --bg: #050505; --panel: #111111; --accent: #FFD700; --text: #E6EDF3; --netflix: #E50914; --disney: #113CCF; --max: #A020F0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; }
+        .sidebar { width: 250px; background: #000; border-right: 1px solid #222; height: 100vh; padding: 20px; }
         .nav-item { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; transition: 0.3s; }
         .nav-item:hover { background: #111; color: var(--accent); }
-        
-        /* Main */
-        .main { flex: 1; padding: 40px; }
-        .card-elegant { background: linear-gradient(145deg, #161616, #0a0a0a); border: 1px solid #222; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Colores por Servicio */
-        .tag { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; }
-        .bg-Netflix { background: var(--netflix); }
-        .bg-Disney { background: var(--disney); }
-        .bg-Max { background: var(--max); }
-        
-        h1 { font-weight: 300; letter-spacing: -1px; }
+        .main { flex: 1; padding: 30px; overflow-y: auto; }
+        .card-pro { background: #111; border: 1px solid #222; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .tag { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .bg-Netflix { background: var(--netflix); } .bg-Disney { background: var(--disney); } .bg-Max { background: var(--max); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { color: #666; font-size: 11px; text-align: left; padding: 10px; }
+        td { padding: 12px; border-bottom: 1px solid #222; }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <div class="logo">STREAMBASE PRO</div>
-        <div class="nav-item" onclick="showSection('dashboard')">📊 Dashboard Ejecutivo</div>
-        <div class="nav-item" onclick="showSection('clients')">👥 Cartera Clientes</div>
-        <div class="nav-item" onclick="showSection('accounts')">🍿 Gestión Cuentas</div>
+        <h2 style="color:var(--accent)">STREAMBASE PRO</h2>
+        <div class="nav-item" onclick="showSection('dashboard')">📊 Resumen General</div>
+        <div class="nav-item" onclick="showSection('clients')">👥 Gestión Clientes</div>
+        <div class="nav-item" onclick="showSection('accounts')">🍿 Control Cuentas</div>
         <div class="nav-item" onclick="showSection('cash')">💸 Flujo de Caja</div>
+        <div class="nav-item" onclick="showSection('config')">⚙️ Ajustes Nube</div>
     </div>
 
-    <div class="main">
+    <div class="main" id="content">
+        <!-- Dashboard -->
         <div id="dashboard" class="section">
-            <h1>Panel Ejecutivo</h1>
-            <div style="display:flex; gap:20px;">
-                <div class="card-elegant" style="flex:1"><h3>TOTAL VENTAS</h3><h2 id="d-ventas">$0.00</h2></div>
-                <div class="card-elegant" style="flex:1"><h3>CLIENTES</h3><h2 id="d-clientes">0</h2></div>
+            <h1>Panel de Control</h1>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
+                <div class="card-pro"><h3>CLIENTES</h3><h2 id="d-clients">0</h2></div>
+                <div class="card-pro"><h3>PLATAFORMAS</h3><h2 id="d-accs">0</h2></div>
+                <div class="card-pro"><h3>INGRESOS (USD)</h3><h2 id="d-in">$0.00</h2></div>
+                <div class="card-pro"><h3>EGRESOS (USD)</h3><h2 id="d-out">$0.00</h2></div>
             </div>
-            <br>
-            <table style="width:100%; border-collapse: collapse;">
-                <thead><tr style="text-align:left; color:#666; font-size:12px;"><th>CLIENTE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead>
-                <tbody id="vencimientos-body"></tbody>
-            </table>
+            <table id="table-vence"><thead><tr><th>CLIENTE</th><th>SERVICIO</th><th>VENCIMIENTO</th></tr></thead><tbody id="vence-body"></tbody></table>
         </div>
     </div>
 
     <script>
-        // Lógica de colores automáticos para servicios
-        function getServiceClass(name) {
-            if(name.toLowerCase().includes('netflix')) return 'bg-Netflix';
-            if(name.toLowerCase().includes('disney')) return 'bg-Disney';
-            if(name.toLowerCase().includes('max')) return 'bg-Max';
-            return 'bg-secondary';
+        // Lógica de datos extraída de desktop_app.py
+        let state = { db: [], tv_db: [], cash_flow_transactions: [], firebaseUrl: localStorage.getItem('streambase_url') || '' };
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
         }
 
-        // Renderizado Profesional con etiquetas de color
-        function renderDashboard() {
-            let tbody = document.getElementById('vencimientos-body');
-            tbody.innerHTML = '';
+        async function syncFromFirebase() {
+            const endpoint = state.firebaseUrl + 'streambase.json';
+            const res = await fetch(endpoint);
+            const data = await res.json();
+            state.db = data.db || [];
+            state.tv_db = data.tv_db || [];
+            state.cash_flow_transactions = data.cash_flow_transactions || [];
+            renderAll();
+        }
+
+        function renderAll() {
+            // Renderiza según la lógica del archivo desktop_app.py
+            document.getElementById('d-clients').innerText = state.db.length;
+            document.getElementById('d-accs').innerText = state.tv_db.length;
+            // Lógica de colores por servicio
+            let body = document.getElementById('vence-body');
+            body.innerHTML = '';
             state.db.forEach(c => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${c.nombre}</td>
-                        <td><span class="tag ${getServiceClass(c.servicio)}">${c.servicio}</span></td>
-                        <td>${c.vence}</td>
-                    </tr>`;
+                let colorClass = c.servicio.toLowerCase().includes('netflix') ? 'bg-Netflix' : 
+                                 c.servicio.toLowerCase().includes('disney') ? 'bg-Disney' : 'bg-Max';
+                body.innerHTML += `<tr><td>${c.nombre}</td><td><span class="tag ${colorClass}">${c.servicio}</span></td><td>${c.vence}</td></tr>`;
             });
         }
-        
-        // El resto de la lógica de Firebase y Sincronización se mantiene igual...
     </script>
 </body>
 </html>
