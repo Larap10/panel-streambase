@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamBase Enterprise Control</title>
+    <title>StreamBase Pro | Enterprise Web</title>
     <style>
         :root { --bg: #050505; --panel: #111111; --accent: #FFD700; --text: #E6EDF3; }
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
         .sidebar { width: 250px; background: #000; height: 100vh; padding: 20px; border-right: 1px solid #222; }
-        .nav-item { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; color: #888; }
+        .nav-item { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; color: #888; font-weight: bold; }
         .nav-item:hover { background: #111; color: var(--accent); }
         .main { flex: 1; padding: 30px; }
         .section { display: none; }
@@ -16,7 +16,7 @@
 <body>
     <div class="sidebar">
         <h2 style="color:var(--accent)">STREAMBASE PRO</h2>
-        <div class="nav-item" onclick="showSection('dashboard')">📊 Resumen General</div>
+        <div class="nav-item" onclick="app.showSection('dashboard')">📊 Resumen General</div>
         <div class="nav-item" onclick="showSection('clients')">👥 Gestión Clientes</div>
         <div class="nav-item" onclick="showSection('accounts')">🍿 Control Cuentas</div>
         <div class="nav-item" onclick="showSection('cash')">💸 Flujo de Caja</div>
@@ -24,7 +24,6 @@
     </div>
 
     <div class="main">
-        <!-- SECCIONES NECESARIAS PARA LA LÓGICA -->
         <div id="dashboard" class="section" style="display:block;"><h1>Resumen General</h1><div id="d-content">Cargando...</div></div>
         <div id="clients" class="section"><h1>Gestión Clientes</h1></div>
         <div id="accounts" class="section"><h1>Control Cuentas</h1></div>
@@ -33,16 +32,43 @@
     </div>
 
     <script>
-        // Función corregida para evitar el error de 'null'
-        function showSection(id) {
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(s => s.style.display = 'none');
-            const target = document.getElementById(id);
-            if (target) {
-                target.style.display = 'block';
-            } else {
-                console.error("La sección con ID " + id + " no existe.");
+        // Clase centralizada para recuperar la lógica de desktop_app.py
+        class StreamBasePro {
+            constructor() {
+                this.db = [];
+                this.tv_db = [];
+                this.cash = [];
+                this.url = localStorage.getItem('streambase_url') || '';
+                this.init();
             }
+
+            async init() {
+                if (this.url) await this.sync();
+            }
+
+            async sync() {
+                try {
+                    const res = await fetch(this.url + 'streambase.json');
+                    const data = await res.json();
+                    this.db = data.db || [];
+                    this.tv_db = data.tv_db || [];
+                    this.cash = data.cash_flow_transactions || [];
+                    this.renderDashboard();
+                } catch(e) { console.error("Error de sincronización", e); }
+            }
+
+            renderDashboard() {
+                const el = document.getElementById('d-content');
+                el.innerHTML = `Clientes registrados: ${this.db.length}`;
+            }
+        }
+
+        const app = new StreamBasePro();
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            const target = document.getElementById(id);
+            if(target) target.style.display = 'block';
         }
     </script>
 </body>
